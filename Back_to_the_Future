@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>2050 ∞ INTERACTIVE FUTURE</title>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: black;
+}
+canvas { display: block; }
+.info {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    color: rgba(255,255,255,0.4);
+    font-family: monospace;
+    font-size: 12px;
+    pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div class="info">MOVE • CLICK • PRESS 1 2 3</div>
+
+<script>
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+let w, h, t = 0;
+let mode = 2;
+
+const mouse = { x: 0, y: 0, vx: 0, vy: 0, down: false };
+
+function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+window.addEventListener("mousemove", e => {
+    mouse.vx = e.clientX - mouse.x;
+    mouse.vy = e.clientY - mouse.y;
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+});
+window.addEventListener("mousedown", () => mouse.down = true);
+window.addEventListener("mouseup", () => mouse.down = false);
+
+window.addEventListener("keydown", e => {
+    if (e.key === "1") mode = 1;
+    if (e.key === "2") mode = 2;
+    if (e.key === "3") mode = 3;
+});
+
+class Particle {
+    constructor() { this.reset(); }
+    reset() {
+        this.x = Math.random() * w;
+        this.y = Math.random() * h;
+        this.vx = Math.random() * 4 - 2;
+        this.vy = Math.random() * 4 - 2;
+        this.hue = Math.random() * 360;
+        this.size = Math.random() * 2 + 0.5;
+    }
+    update() {
+        let dx = mouse.x - this.x;
+        let dy = mouse.y - this.y;
+        let dist = Math.sqrt(dx*dx + dy*dy) + 0.1;
+
+        let force = 0.002 * mode;
+        this.vx += dx * force / dist;
+        this.vy += dy * force / dist;
+
+        if (mouse.down) {
+            this.vx -= dx * 0.01;
+            this.vy -= dy * 0.01;
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        this.hue += 1 + Math.abs(mouse.vx + mouse.vy) * 0.05;
+
+        if (this.x < 0 || this.x > w || this.y < 0 || this.y > h) {
+            this.reset();
+        }
+    }
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue},100%,60%,0.8)`;
+        ctx.fill();
+    }
+}
+
+const particles = Array.from({ length: 3000 }, () => new Particle());
+
+function shockwave() {
+    for (let p of particles) {
+        let dx = p.x - mouse.x;
+        let dy = p.y - mouse.y;
+        let dist = Math.sqrt(dx*dx + dy*dy) + 0.1;
+        let power = 20 / dist;
+        p.vx += dx * power;
+        p.vy += dy * power;
+    }
+}
+
+window.addEventListener("click", shockwave);
+
+function loop() {
+    t++;
+
+    ctx.fillStyle = `hsla(${t % 360},100%,5%,0.2)`;
+    ctx.fillRect(0,0,w,h);
+
+    ctx.globalCompositeOperation = "lighter";
+
+    for (let p of particles) {
+        p.update();
+        p.draw();
+    }
+
+    // reactive wave rings
+    ctx.beginPath();
+    ctx.arc(mouse.x, mouse.y, 100 + Math.sin(t*0.1)*50, 0, Math.PI*2);
+    ctx.strokeStyle = `hsla(${t*2%360},100%,70%,0.3)`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.globalCompositeOperation = "source-over";
+
+    requestAnimationFrame(loop);
+}
+loop();
+</script>
+
+</body>
+</html>
